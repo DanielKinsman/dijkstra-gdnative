@@ -34,7 +34,7 @@ struct CompareDistance {
     }
 };
 
-pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>> dijkstra_test(int rows, int columns);
+pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>> dijkstra_test(int rows, int columns, CellCoord source);
 int main();
 
 namespace std {

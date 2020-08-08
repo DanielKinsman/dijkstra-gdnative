@@ -11,9 +11,9 @@
 using namespace std;
 
 int main() {
-    int rows = 1000;
-    int columns = 10;
-    auto result = dijkstra_test(rows, columns);
+    int rows = 5000;
+    int columns = 30;
+    auto result = dijkstra_test(rows, columns, CellCoord(2500, 10));
 
     for(int i = 0; i < rows; i++) {
         for(int j = 0; j < columns; j++) {
@@ -25,13 +25,12 @@ int main() {
     return 0;
 }
 
-pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>> dijkstra_test(int rows, int columns) {
+pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>> dijkstra_test(int rows, int columns, CellCoord source) {
     unordered_set<CellCoord> vertex_set; // just for faster lookups, worth it?
     priority_queue<CellDistance, vector<CellDistance>, CompareDistance> vertex_queue;
     unordered_map<CellCoord, int> distances;
     unordered_map<CellCoord, CellCoord> previous;
 
-    auto source = CellCoord(0, 0);
     vertex_queue.push(CellDistance(source, 0));
 
     for(int i = 0; i < rows; i++) {
