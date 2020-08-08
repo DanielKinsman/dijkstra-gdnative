@@ -1,3 +1,5 @@
 .sconsign.dblite
 *.so
 *.os
+*.o
+standalone/dijkstra_test
