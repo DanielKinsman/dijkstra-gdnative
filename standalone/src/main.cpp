@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
+#include <iostream>
+#include <limits>
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>
@@ -9,34 +11,40 @@
 using namespace std;
 
 int main() {
-    dijkstra_test();
+    int rows = 1000;
+    int columns = 10;
+    auto result = dijkstra_test(rows, columns);
+
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < columns; j++) {
+            cout << result.first[CellCoord(i, j)] << "\t";
+        }
+        cout << endl;
+    }
+
     return 0;
 }
 
-void dijkstra_test() {
-    unordered_set<CellCoord> vertex_set;
+pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>> dijkstra_test(int rows, int columns) {
+    unordered_set<CellCoord> vertex_set; // just for faster lookups, worth it?
+    priority_queue<CellDistance, vector<CellDistance>, CompareDistance> vertex_queue;
     unordered_map<CellCoord, int> distances;
     unordered_map<CellCoord, CellCoord> previous;
-    int rows = 50;
-    int columns = 50;
+
+    auto source = CellCoord(0, 0);
+    vertex_queue.push(CellDistance(source, 0));
 
     for(int i = 0; i < rows; i++) {
         for(int j = 0; j < columns; j++) {
             auto coord = CellCoord(i, j);
-            distances[coord] = 99999999;
-            //previous[coord] = CellCoord.Invalid();
+            distances[coord] = coord == source ? 0 : numeric_limits<int>::max();
             vertex_set.insert(coord);
         }
     }
 
-    distances[CellCoord(0, 0)] = 0;
-
-    while(!vertex_set.empty()) {
-        CellCoord current = min_distance(distances, vertex_set);
-        if(vertex_set.count(current) == 0) {
-            return;
-        }
-
+    while(!vertex_queue.empty()) {
+        CellCoord current = vertex_queue.top().first;
+        vertex_queue.pop();
         vertex_set.erase(current);
 
         for(int i : {-1, 0, 1}) {
@@ -52,23 +60,11 @@ void dijkstra_test() {
                 if(distance_to_neighbour < distances[neighbour]) {
                     distances[neighbour] = distance_to_neighbour;
                     previous[neighbour] = current;
+                    vertex_queue.push(CellDistance(neighbour, distance_to_neighbour)); 
                 }
             }
         }
     }
-}
 
-CellCoord min_distance(unordered_map<CellCoord, int> const& distances, unordered_set<CellCoord> const& vertex_set) {
-    CellCoord min_coord;
-    int min =  99999999;
-    for(auto p : distances) {
-        auto current = p.first;
-        if(vertex_set.count(p.first) && p.second < min) {
-            min_coord=p.first;
-            min = p.second;
-        }
-    }
-
-    assert(min != 99999999);
-    return min_coord;
+    return pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>>(distances, previous);
 }

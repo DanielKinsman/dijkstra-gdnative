@@ -25,8 +25,16 @@ struct CellCoord {
     }
 };
 
-CellCoord min_distance(unordered_map<CellCoord, int> const& distances, unordered_set<CellCoord> const& vertex_set);
-void dijkstra_test();
+typedef pair<CellCoord, int> CellDistance;
+bool compare_distance(CellDistance left, CellDistance right);
+
+struct CompareDistance {
+    bool operator()(const CellDistance& left, const CellDistance& right) const {
+        return left.second > right.second;  // > because in the priority queue, we want top() to be the smallest
+    }
+};
+
+pair<unordered_map<CellCoord, int>, unordered_map<CellCoord, CellCoord>> dijkstra_test(int rows, int columns);
 int main();
 
 namespace std {
