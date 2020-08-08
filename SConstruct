@@ -1,5 +1,7 @@
 #!python
-import os, subprocess
+import os
+import subprocess
+import sys
 
 opts = Variables([], ARGUMENTS)
 
@@ -33,9 +35,22 @@ if env['use_llvm']:
 if env['p'] != '':
     env['platform'] = env['p']
 
+# Try to detect the host platform automatically.
+# This is used if no `platform` argument is passed
+if sys.platform.startswith('linux'):
+    host_platform = 'linux'
+elif sys.platform == 'darwin':
+    host_platform = 'osx'
+elif sys.platform == 'win32' or sys.platform == 'msys':
+    host_platform = 'windows'
+else:
+    raise ValueError(
+        'Could not detect platform automatically, please specify with '
+        'platform=<platform>'
+    )
+
 if env['platform'] == '':
-    print("No valid target platform selected.")
-    quit();
+    env['platform'] = host_platform
 
 # For the reference:
 # - CCFLAGS are compilation flags shared between C and C++
@@ -55,7 +70,7 @@ if env['platform'] == "osx":
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS=['-g', '-O2'])
     else:
-        env.Append(CCFLAGS=['-g', '-O3'])
+        env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] in ('x11', 'linux'):
     env['target_path'] += 'x11/'
@@ -65,7 +80,7 @@ elif env['platform'] in ('x11', 'linux'):
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS=['-g3', '-Og'])
     else:
-        env.Append(CCFLAGS=['-g', '-O3'])
+        env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] == "windows":
     env['target_path'] += 'win64/'
