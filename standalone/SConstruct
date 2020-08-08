@@ -1,0 +1,5 @@
+opts = Variables([], ARGUMENTS)
+
+# Gets the standard flags CC, CCX, etc.
+env = DefaultEnvironment()
+env.Program("dijkstra_test", Glob("src/*.cpp"))
