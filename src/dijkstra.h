@@ -32,7 +32,7 @@ public:
     int get_weight(int from, int to);
     void solve(int source);
     int get_next_node_towards_source(int id);
-    Vector2 get_next_node_position_towards_source(Vector2 position);
+    Vector2 get_next_node_position_towards_source(int id);
 
 private:
     typedef pair<int, int> NodeDistance;

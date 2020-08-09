@@ -181,7 +181,6 @@ int Dijkstra::get_next_node_towards_source(int id) {
     return previous[id];
 }
 
-Vector2 Dijkstra::get_next_node_position_towards_source(Vector2 position) {
-    // TODO implement
-    return Vector2();
+Vector2 Dijkstra::get_next_node_position_towards_source(int id) {
+    return positions[get_next_node_towards_source(id)];
 }
