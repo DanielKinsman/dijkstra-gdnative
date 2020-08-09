@@ -1,9 +1,17 @@
 extends Node2D
 
 var Dijkstra = preload("res://bin/dijkstra.gdns")
-onready var dijkstra = Dijkstra.new()
+onready var stress_graph = Dijkstra.new()
+onready var rng = RandomNumberGenerator.new()
+const STRESS_NODES = 100 * 100
+const STRESS_CONNECTIONS_PER_NODE = 8
 
 func _ready():
+    test()
+    setup_stress()
+
+func test():
+    var dijkstra = Dijkstra.new()
     dijkstra.add_node(1)
     dijkstra.add_node(2)
     dijkstra.add_node(3)
@@ -25,3 +33,21 @@ func _ready():
         var next = dijkstra.get_next_node_towards_source(n)
         print("Path %s -> %s" % [n, next])
         print("Weight %s -> %s: %s" % [n, next, dijkstra.get_weight(n, next)])
+
+func _process(delta):
+    stress_graph.solve(rng.randi_range(0, STRESS_NODES - 1))
+    $Label.text = "Solved %s nodes %s edges in %ss, %s FPS" % [
+        STRESS_NODES,
+        STRESS_NODES * STRESS_CONNECTIONS_PER_NODE,
+        Performance.get_monitor(Performance.TIME_PROCESS),
+        Performance.get_monitor(Performance.TIME_FPS)
+    ]
+
+func setup_stress():
+    stress_graph.add_node(0)
+    for i in range(STRESS_NODES):
+        for j in range(STRESS_CONNECTIONS_PER_NODE / 2):
+            var neighbour = i + j + 1
+            if neighbour < STRESS_NODES:
+                stress_graph.add_node(neighbour)
+                stress_graph.add_edge(i, neighbour, rng.randi_range(1, 100))
