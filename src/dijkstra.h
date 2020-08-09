@@ -51,10 +51,8 @@ private:
             return left.second > right.second;  // > because in the priority queue, we want top() to be the smallest
         }
     };
-
-    // TODO hash function for Edge
 };
-
+    
 }
 
 #endif

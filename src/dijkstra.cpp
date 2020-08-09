@@ -26,24 +26,28 @@ Dijkstra::~Dijkstra() {
 }
 
 void Dijkstra::_init() {
-    node_set.clear();
-    positions.clear();
 }
 
 void Dijkstra::add_node(int id, Vector2 position) {
-    // TODO check if already in node_set
+    // allow if already exists; only way to update position
     node_set.insert(id);
     positions[id] = position;
 }
 
 void Dijkstra::remove_node(int id) {
-    // TODO check if not in node set
+    if(node_set.count(id) == 0) {
+        WARN_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+        return;
+    }
+
     node_set.erase(id);
     positions.erase(id);
 
     PoolIntArray neighbours = get_neighbours(id); // TODO maybe use an iterator
     for(int i = 0; i < neighbours.size(); i++)
         remove_edge(id, neighbours[i]);
+
+    edges.erase(id);
 }
 
 PoolIntArray Dijkstra::get_nodes() {
@@ -55,36 +59,85 @@ PoolIntArray Dijkstra::get_nodes() {
 }
 
 Vector2 Dijkstra::get_position(int id) {
+    if(node_set.count(id) == 0) {
+        ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+        return Vector2();
+    }
+
     return positions[id];
 }
 
 void Dijkstra::add_edge(int from, int to, int weight) {
+    if(weight <= 0) {
+        ERR_PRINT(String("edge weight {weight} cannot be negative and should not be zero").format(Dictionary::make("weight", weight)));
+        weight = 1;
+    }
+
+    if(node_set.count(from) == 0) {
+        ERR_PRINT(String("{from} not in set of nodes").format(Dictionary::make("from", from)));
+        return;
+    }
+
+    if(node_set.count(to) == 0) {
+        ERR_PRINT(String("{to} not in set of nodes").format(Dictionary::make("to", to)));
+        return;
+    }
+
     // undirected, add both for easy lookup
-    // TODO make sure from and to are in node_set
     edges[from][to] = weight;
     edges[to][from] = weight;
 }
 
 void Dijkstra::remove_edge(int from, int to) {
-    // TODO make sure from and to are in node_set
-    // TODO what to do if edges don't exist?
+    if(node_set.count(from) == 0) {
+        ERR_PRINT(String("{from} not in set of nodes").format(Dictionary::make("from", from)));
+        return;
+    }
+
+    if(node_set.count(to) == 0) {
+        ERR_PRINT(String("{to} not in set of nodes").format(Dictionary::make("to", to)));
+        return;
+    }
+
+    // don't care if the edges don't exist, this won't throw
     edges[from].erase(to);
     edges[to].erase(from);
 }
 
 PoolIntArray Dijkstra::get_neighbours(int id) {
     auto result = PoolIntArray();
+
+    if(node_set.count(id) == 0) {
+        ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+        return result;
+    }
+
     for(auto node_weight_pair : edges[id])
         result.append(node_weight_pair.first);
-    
+
     return result;
 }
 
 int Dijkstra::get_weight(int from, int to) {
+    if(node_set.count(from) == 0) {
+        ERR_PRINT(String("{from} not in set of nodes").format(Dictionary::make("from", from)));
+        return 1;
+    }
+
+    if(node_set.count(to) == 0) {
+        ERR_PRINT(String("{to} not in set of nodes").format(Dictionary::make("to", to)));
+        return 1;
+    }
+
     return edges[from][to];
 }
 
 void Dijkstra::solve(int source) {
+    if(node_set.count(source) == 0) {
+        ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
+        return;
+    }
+
     distances.clear();
     previous.clear();
     previous[source] = source;
@@ -120,7 +173,11 @@ void Dijkstra::solve(int source) {
 }
 
 int Dijkstra::get_next_node_towards_source(int id) {
-    // TODO handle non-existence
+    if(node_set.count(id) == 0) {
+        ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+        return -1;
+    }
+
     return previous[id];
 }
 
