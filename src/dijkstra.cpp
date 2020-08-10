@@ -17,6 +17,7 @@ void Dijkstra::_register_methods() {
     register_method("solve", &Dijkstra::solve);
     register_method("get_next_node_towards_source", &Dijkstra::get_next_node_towards_source);
     register_method("get_next_node_position_towards_source", &Dijkstra::get_next_node_position_towards_source);
+    register_method("get_distance_to_source", &Dijkstra::get_distance_to_source);
 }
 
 Dijkstra::Dijkstra() {
@@ -183,4 +184,13 @@ int Dijkstra::get_next_node_towards_source(int id) {
 
 Vector2 Dijkstra::get_next_node_position_towards_source(int id) {
     return positions[get_next_node_towards_source(id)];
+}
+
+int Dijkstra::get_distance_to_source(int id) {
+    if(node_set.count(id) == 0) {
+        ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+        return -1;
+    }
+
+    return distances[id];
 }

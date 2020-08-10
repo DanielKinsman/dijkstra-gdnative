@@ -33,8 +33,9 @@ func test():
         var next = dijkstra.get_next_node_towards_source(n)
         print("Path %s -> %s" % [n, next])
         print("Weight %s -> %s: %s" % [n, next, dijkstra.get_weight(n, next)])
+        print("Distance %s: %s" % [n, dijkstra.get_distance_to_source(n)])
 
-func _process(delta):
+func _process(_delta):
     stress_graph.solve(rng.randi_range(0, STRESS_NODES - 1))
     $Label.text = "Solved %s nodes %s edges in %ss, %s FPS" % [
         STRESS_NODES,

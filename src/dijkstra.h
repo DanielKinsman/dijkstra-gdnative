@@ -33,6 +33,7 @@ public:
     void solve(int source);
     int get_next_node_towards_source(int id);
     Vector2 get_next_node_position_towards_source(int id);
+    int get_distance_to_source(int id);
 
 private:
     typedef pair<int, int> NodeDistance;
