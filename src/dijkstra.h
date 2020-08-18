@@ -67,6 +67,7 @@ private:
 
     future<dijkstra::DijkstraResult> solve_future;
     void set_result_from_future();
+    bool have_first_result = false;
 };
 
 }
