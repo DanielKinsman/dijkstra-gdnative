@@ -140,8 +140,9 @@ void Dijkstra::solve(int source) {
         return;
     }
 
-    // TODO throw away currently running solve? Return and do not start another?
-    solve_future = async(launch::async, dijkstra::solve, source, node_set, edges);
+    set_result_from_future();
+    if(!solve_future.valid()) // don't start another if one is already running
+        solve_future = async(launch::async, dijkstra::solve, source, node_set, edges);
 }
 
 void Dijkstra::set_result_from_future() {
