@@ -139,38 +139,9 @@ void Dijkstra::solve(int source) {
         return;
     }
 
-    distances.clear();
-    previous.clear();
-    previous[source] = source;
-
-    unordered_set<int> working_node_set; // just for faster lookups, worth it?
-    priority_queue<NodeDistance, vector<NodeDistance>, CompareDistance> node_queue;
-    node_queue.push(NodeDistance(source, 0));
-
-    for(auto node : this->node_set) {
-        distances[node] = node == source ? 0 : numeric_limits<int>::max();
-        working_node_set.insert(node);
-    }
-
-    while(!node_queue.empty()) {
-        int current = node_queue.top().first;
-        node_queue.pop();
-        working_node_set.erase(current);
-
-        PoolIntArray neighbours = get_neighbours(current); // TODO maybe use an iterator
-        for(int i = 0; i < neighbours.size(); i++) {
-            int neighbour = neighbours[i];
-            if(working_node_set.count(neighbour) == 0)
-                continue;
-
-            int distance_to_neighbour = distances[current] + get_weight(current, neighbour);
-            if(distance_to_neighbour < distances[neighbour]) {
-                distances[neighbour] = distance_to_neighbour;
-                previous[neighbour] = current;
-                node_queue.push(NodeDistance(neighbour, distance_to_neighbour));
-            }
-        }
-    }
+    auto result = dijkstra::solve(source, node_set, edges);
+    distances = result.distances;
+    previous = result.previous;
 }
 
 int Dijkstra::get_next_node_towards_source(int id) {
@@ -193,4 +164,41 @@ int Dijkstra::get_distance_to_source(int id) {
     }
 
     return distances[id];
+}
+
+dijkstra::DijkstraResult dijkstra::solve(int source, unordered_set<int> node_set, unordered_map<int, unordered_map<int, int>> edges) {
+    auto result = DijkstraResult();
+    result.previous[source] = source;
+
+    unordered_set<int> working_node_set; // just for faster lookups, worth it?
+    priority_queue<NodeDistance, vector<NodeDistance>, CompareDistance> node_queue;
+    node_queue.push(NodeDistance(source, 0));
+
+    for(auto node : node_set) {
+        result.distances[node] = node == source ? 0 : numeric_limits<int>::max();
+        working_node_set.insert(node);
+    }
+
+    while(!node_queue.empty()) {
+        int current = node_queue.top().first;
+        node_queue.pop();
+        working_node_set.erase(current);
+
+        for(auto node_weight_pair : edges[current]) {
+            int neighbour = node_weight_pair.first;
+            int weight = node_weight_pair.second;
+
+            if(working_node_set.count(neighbour) == 0)
+                continue;
+
+            int distance_to_neighbour = result.distances[current] + weight;
+            if(distance_to_neighbour < result.distances[neighbour]) {
+                result.distances[neighbour] = distance_to_neighbour;
+                result.previous[neighbour] = current;
+                node_queue.push(NodeDistance(neighbour, distance_to_neighbour));
+            }
+        }
+    }
+
+    return result;
 }

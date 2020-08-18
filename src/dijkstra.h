@@ -36,8 +36,6 @@ public:
     int get_distance_to_source(int id);
 
 private:
-    typedef pair<int, int> NodeDistance;
-
     unordered_set<int> node_set;
     unordered_map<int, Vector2> positions;
 
@@ -46,13 +44,26 @@ private:
 
     unordered_map<int, int> distances;
     unordered_map<int, int> previous;
-
-    struct CompareDistance {
-        bool operator()(const NodeDistance& left, const NodeDistance& right) const {
-            return left.second > right.second;  // > because in the priority queue, we want top() to be the smallest
-        }
-    };
 };
+
+}
+
+namespace dijkstra {
+typedef pair<int, int> NodeDistance;
+
+struct DijkstraResult {
+    unordered_map<int, int> distances;
+    unordered_map<int, int> previous;
+};
+
+struct CompareDistance {
+    bool operator()(const NodeDistance& left, const NodeDistance& right) const {
+        return left.second > right.second;  // > because in the priority queue, we want top() to be the smallest
+    }
+};
+
+
+DijkstraResult solve(int source, unordered_set<int> node_set, unordered_map<int, unordered_map<int, int>> edges);
 
 }
 
