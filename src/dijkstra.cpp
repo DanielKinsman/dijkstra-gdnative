@@ -1,5 +1,6 @@
 #include "dijkstra.h"
 
+#include <future>
 #include <queue>
 
 using namespace std;
@@ -139,9 +140,18 @@ void Dijkstra::solve(int source) {
         return;
     }
 
-    auto result = dijkstra::solve(source, node_set, edges);
-    distances = result.distances;
-    previous = result.previous;
+    // TODO throw away currently running solve? Return and do not start another?
+    solve_future = async(launch::async, dijkstra::solve, source, node_set, edges);
+    solve_future.wait();
+    set_result_from_future();
+}
+
+void Dijkstra::set_result_from_future() {
+    if(solve_future.valid() && solve_future.wait_for(chrono::seconds(0)) == future_status::ready) {
+        auto result = solve_future.get();
+        distances = result.distances;
+        previous = result.previous;
+    }
 }
 
 int Dijkstra::get_next_node_towards_source(int id) {

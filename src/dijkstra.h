@@ -5,10 +5,30 @@
 #include <Object.hpp>
 #include <Vector2.hpp>
 
+#include <future>
 #include <unordered_map>
 #include <unordered_set>
 
 using namespace std;
+
+namespace dijkstra {
+typedef pair<int, int> NodeDistance;
+
+struct DijkstraResult {
+    unordered_map<int, int> distances;
+    unordered_map<int, int> previous;
+};
+
+struct CompareDistance {
+    bool operator()(const NodeDistance& left, const NodeDistance& right) const {
+        return left.second > right.second;  // > because in the priority queue, we want top() to be the smallest
+    }
+};
+
+
+DijkstraResult solve(int source, unordered_set<int> node_set, unordered_map<int, unordered_map<int, int>> edges);
+
+}
 
 namespace godot {
 
@@ -44,27 +64,12 @@ private:
 
     unordered_map<int, int> distances;
     unordered_map<int, int> previous;
+
+    future<dijkstra::DijkstraResult> solve_future;
+    void set_result_from_future();
 };
 
 }
 
-namespace dijkstra {
-typedef pair<int, int> NodeDistance;
-
-struct DijkstraResult {
-    unordered_map<int, int> distances;
-    unordered_map<int, int> previous;
-};
-
-struct CompareDistance {
-    bool operator()(const NodeDistance& left, const NodeDistance& right) const {
-        return left.second > right.second;  // > because in the priority queue, we want top() to be the smallest
-    }
-};
-
-
-DijkstraResult solve(int source, unordered_set<int> node_set, unordered_map<int, unordered_map<int, int>> edges);
-
-}
 
 #endif
