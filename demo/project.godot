@@ -19,6 +19,10 @@ config/name="dijkstra-cpp-demo"
 run/main_scene="res://main.tscn"
 config/icon="res://icon.png"
 
+[display]
+
+window/vsync/use_vsync=false
+
 [rendering]
 
 environment/default_environment="res://default_env.tres"
