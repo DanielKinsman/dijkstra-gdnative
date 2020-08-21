@@ -31,7 +31,7 @@ struct CompareDistance {
 };
 
 
-DijkstraResult solve(int source, const godot::Dijkstra& graph);
+DijkstraResult solve(int source, godot::Dijkstra& graph);
 godot::Vector2 calculate_flow(int node, const unordered_map<int, int>& neighbours, const unordered_map<int, godot::Vector2>& positions, const unordered_map<int, int>& distances);
 
 }
@@ -41,7 +41,7 @@ namespace godot {
 class Dijkstra : public Object {
     GODOT_CLASS(Dijkstra, Object)
 
-    friend dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph);
+    friend dijkstra::DijkstraResult dijkstra::solve(int source, Dijkstra& graph);
 public:
     static void _register_methods();
 
@@ -76,6 +76,7 @@ private:
     future<dijkstra::DijkstraResult> solve_future;
     void set_result_from_future();
     bool have_first_result = false;
+    atomic<bool> solving = false;
 };
 
 }

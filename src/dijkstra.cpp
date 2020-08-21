@@ -152,15 +152,18 @@ void Dijkstra::solve_async(int source) {
     }
 
     set_result_from_future();
-    if(!solve_future.valid()) // don't start another if one is already running
+    if(!solving.load()) { // don't start another if one is already running
+        solving = true;
         solve_future = async(launch::async, dijkstra::solve, source, ref(*this));
+    }
 }
 
 void Dijkstra::set_result_from_future() {
     if(!solve_future.valid())
         return;
 
-    if(!have_first_result || solve_future.wait_for(chrono::seconds(0)) == future_status::ready) {
+    if(!have_first_result || !solving.load()) {
+        // Previously used `solve_future.wait_for` but it's implementation is too slow
         solve_result = solve_future.get();
         have_first_result = true;
         solve_future = future<dijkstra::DijkstraResult>();  // invalidate it
@@ -201,7 +204,7 @@ Vector2 Dijkstra::get_flow(int id) {
     return solve_result.flow_field.at(id);
 }
 
-dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph) {
+dijkstra::DijkstraResult dijkstra::solve(int source, Dijkstra& graph) {
     // TODO this is unsafe! Put a mutex around nodes, edges and positions
     auto node_set = unordered_set<int>(graph.node_set);
     auto edges = unordered_map<int, unordered_map<int, int>>(graph.edges);
@@ -247,6 +250,7 @@ dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph) {
         result.flow_field[node] = calculate_flow(node, edges[node], positions, result.distances);
     }
 
+    graph.solving = false;
     return result;
 }
 
