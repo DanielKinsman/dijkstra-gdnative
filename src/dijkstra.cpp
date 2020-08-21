@@ -141,7 +141,7 @@ void Dijkstra::solve(int source) {
         return;
     }
 
-    dijkstra::DijkstraResult result = dijkstra::solve(source, node_set, edges);
+    dijkstra::DijkstraResult result = dijkstra::solve(source, *this);
     previous = result.previous;
     distances = result.distances;
 }
@@ -154,7 +154,7 @@ void Dijkstra::solve_async(int source) {
 
     set_result_from_future();
     if(!solve_future.valid()) // don't start another if one is already running
-        solve_future = async(launch::async, dijkstra::solve, source, node_set, edges);
+        solve_future = async(launch::async, dijkstra::solve, source, ref(*this));
 }
 
 void Dijkstra::set_result_from_future() {
@@ -194,8 +194,12 @@ int Dijkstra::get_distance_to_source(int id) {
     return distances[id];
 }
 
-dijkstra::DijkstraResult dijkstra::solve(int source, unordered_set<int> node_set, unordered_map<int, unordered_map<int, int>> edges) {
+dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph) {
+    // TODO this is unsafe! Put a mutex around nodes and edges
+    auto node_set = unordered_set<int>(graph.node_set);
+    auto edges = unordered_map<int, unordered_map<int, int>>(graph.edges);
     auto result = DijkstraResult();
+
     result.previous[source] = source;
 
     unordered_set<int> working_node_set; // just for faster lookups, worth it?

@@ -11,6 +11,10 @@
 
 using namespace std;
 
+namespace godot {
+    class Dijkstra;
+}
+
 namespace dijkstra {
 typedef pair<int, int> NodeDistance;
 
@@ -26,7 +30,7 @@ struct CompareDistance {
 };
 
 
-DijkstraResult solve(int source, unordered_set<int> node_set, unordered_map<int, unordered_map<int, int>> edges);
+DijkstraResult solve(int source, const godot::Dijkstra& graph);
 
 }
 
@@ -35,6 +39,7 @@ namespace godot {
 class Dijkstra : public Object {
     GODOT_CLASS(Dijkstra, Object)
 
+    friend dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph);
 public:
     static void _register_methods();
 
@@ -72,6 +77,5 @@ private:
 };
 
 }
-
 
 #endif
