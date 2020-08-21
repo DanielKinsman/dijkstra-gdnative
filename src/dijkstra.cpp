@@ -20,6 +20,7 @@ void Dijkstra::_register_methods() {
     register_method("get_next_node_towards_source", &Dijkstra::get_next_node_towards_source);
     register_method("get_next_node_position_towards_source", &Dijkstra::get_next_node_position_towards_source);
     register_method("get_distance_to_source", &Dijkstra::get_distance_to_source);
+    register_method("get_flow", &Dijkstra::get_flow);
 }
 
 Dijkstra::Dijkstra() {
@@ -141,9 +142,7 @@ void Dijkstra::solve(int source) {
         return;
     }
 
-    dijkstra::DijkstraResult result = dijkstra::solve(source, *this);
-    previous = result.previous;
-    distances = result.distances;
+    solve_result = dijkstra::solve(source, *this);
 }
 
 void Dijkstra::solve_async(int source) {
@@ -162,9 +161,7 @@ void Dijkstra::set_result_from_future() {
         return;
 
     if(!have_first_result || solve_future.wait_for(chrono::seconds(0)) == future_status::ready) {
-        auto result = solve_future.get();
-        distances = result.distances;
-        previous = result.previous;
+        solve_result = solve_future.get();
         have_first_result = true;
         solve_future = future<dijkstra::DijkstraResult>();  // invalidate it
     }
@@ -177,7 +174,7 @@ int Dijkstra::get_next_node_towards_source(int id) {
     }
 
     set_result_from_future();
-    return previous[id];
+    return solve_result.previous[id];
 }
 
 Vector2 Dijkstra::get_next_node_position_towards_source(int id) {
@@ -191,13 +188,24 @@ int Dijkstra::get_distance_to_source(int id) {
     }
 
     set_result_from_future();
-    return distances[id];
+    return solve_result.distances[id];
+}
+
+Vector2 Dijkstra::get_flow(int id) {
+    set_result_from_future();
+    if(solve_result.flow_field.count(id) == 0) {
+        ERR_PRINT(String("no flow calculated for node {id}").format(Dictionary::make("id", id)));
+        return Vector2();
+    }
+
+    return solve_result.flow_field.at(id);
 }
 
 dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph) {
-    // TODO this is unsafe! Put a mutex around nodes and edges
+    // TODO this is unsafe! Put a mutex around nodes, edges and positions
     auto node_set = unordered_set<int>(graph.node_set);
     auto edges = unordered_map<int, unordered_map<int, int>>(graph.edges);
+    auto positions = unordered_map<int, Vector2>(graph.positions);
     auto result = DijkstraResult();
 
     result.previous[source] = source;
@@ -230,6 +238,35 @@ dijkstra::DijkstraResult dijkstra::solve(int source, const Dijkstra& graph) {
                 node_queue.push(NodeDistance(neighbour, distance_to_neighbour));
             }
         }
+    }
+
+    for(auto node : node_set) {
+        // could do this in parallel for each node individually, but we are
+        // probably on a background thread already (assuming solve_async)
+        // and won't someone think of the thread startup overhead children
+        result.flow_field[node] = calculate_flow(node, edges[node], positions, result.distances);
+    }
+
+    return result;
+}
+
+Vector2 dijkstra::calculate_flow(int node, const unordered_map<int, int>& neighbours, const unordered_map<int, Vector2>& positions, const unordered_map<int, int>& distances) {
+    Vector2 result;
+
+    for(auto neighbour_pair : neighbours) {
+        // Why is it neighbour pos - node pos and not the other way around? :shrug:
+        Vector2 offset = positions.at(neighbour_pair.first) - positions.at(node);
+        auto distance_to_offset = distances.at(neighbour_pair.first);
+
+        if(offset.y == 0.0)
+            result.x -= offset.x * distance_to_offset;
+        else
+            result.x -= offset.x * 0.5 * distance_to_offset;
+
+        if(offset.x == 0)
+            result.y -= offset.y * distance_to_offset;
+        else
+            result.y -= offset.y * 0.5 * distance_to_offset;
     }
 
     return result;

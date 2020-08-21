@@ -21,6 +21,7 @@ typedef pair<int, int> NodeDistance;
 struct DijkstraResult {
     unordered_map<int, int> distances;
     unordered_map<int, int> previous;
+    unordered_map<int, godot::Vector2> flow_field;
 };
 
 struct CompareDistance {
@@ -31,6 +32,7 @@ struct CompareDistance {
 
 
 DijkstraResult solve(int source, const godot::Dijkstra& graph);
+godot::Vector2 calculate_flow(int node, const unordered_map<int, int>& neighbours, const unordered_map<int, godot::Vector2>& positions, const unordered_map<int, int>& distances);
 
 }
 
@@ -60,6 +62,7 @@ public:
     int get_next_node_towards_source(int id);
     Vector2 get_next_node_position_towards_source(int id);
     int get_distance_to_source(int id);
+    Vector2 get_flow(int id);
 
 private:
     unordered_set<int> node_set;
@@ -68,8 +71,7 @@ private:
     // Edges are undirected. from < to always
     unordered_map<int, unordered_map<int, int>> edges; // edges[from][to] = weight
 
-    unordered_map<int, int> distances;
-    unordered_map<int, int> previous;
+    dijkstra::DijkstraResult solve_result;
 
     future<dijkstra::DijkstraResult> solve_future;
     void set_result_from_future();
