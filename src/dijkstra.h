@@ -51,6 +51,7 @@ public:
     PoolIntArray get_neighbours(int id);
     int get_weight(int from, int to);
     void solve(int source);
+    void solve_async(int source);
     int get_next_node_towards_source(int id);
     Vector2 get_next_node_position_towards_source(int id);
     int get_distance_to_source(int id);

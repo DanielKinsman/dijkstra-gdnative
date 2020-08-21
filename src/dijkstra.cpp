@@ -16,6 +16,7 @@ void Dijkstra::_register_methods() {
     register_method("get_neighbours", &Dijkstra::get_neighbours);
     register_method("get_weight", &Dijkstra::get_weight);
     register_method("solve", &Dijkstra::solve);
+    register_method("solve_async", &Dijkstra::solve_async);
     register_method("get_next_node_towards_source", &Dijkstra::get_next_node_towards_source);
     register_method("get_next_node_position_towards_source", &Dijkstra::get_next_node_position_towards_source);
     register_method("get_distance_to_source", &Dijkstra::get_distance_to_source);
@@ -135,6 +136,17 @@ int Dijkstra::get_weight(int from, int to) {
 }
 
 void Dijkstra::solve(int source) {
+    if(node_set.count(source) == 0) {
+        ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
+        return;
+    }
+
+    dijkstra::DijkstraResult result = dijkstra::solve(source, node_set, edges);
+    previous = result.previous;
+    distances = result.distances;
+}
+
+void Dijkstra::solve_async(int source) {
     if(node_set.count(source) == 0) {
         ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
         return;
