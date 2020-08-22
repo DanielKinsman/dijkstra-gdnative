@@ -291,6 +291,7 @@ Vector2 dijkstra::calculate_flow(int node, const unordered_map<int, int>& neighb
         // Why is it neighbour pos - node pos and not the other way around? :shrug:
         Vector2 offset = positions.at(neighbour_pair.first) - positions.at(node);
         auto distance_to_offset = distances.at(neighbour_pair.first);
+        distance_to_offset = min(distance_to_offset, distances.at(node)); // avoid huge costs in nearby cells dominating the result
 
         if(offset.y == 0.0)
             result.x -= offset.x * distance_to_offset;
