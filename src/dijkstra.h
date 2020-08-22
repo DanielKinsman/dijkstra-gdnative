@@ -6,6 +6,7 @@
 #include <Vector2.hpp>
 
 #include <future>
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -75,8 +76,9 @@ private:
 
     future<dijkstra::DijkstraResult> solve_future;
     void set_result_from_future();
-    bool have_first_result = false;
-    atomic<bool> solving = false;
+    bool solving = false;
+    recursive_mutex solve_mutex;
+    recursive_mutex graph_mutex;
 };
 
 }

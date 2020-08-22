@@ -1,6 +1,7 @@
 #include "dijkstra.h"
 
 #include <future>
+#include <mutex>
 #include <queue>
 
 using namespace std;
@@ -33,12 +34,15 @@ void Dijkstra::_init() {
 }
 
 void Dijkstra::add_node(int id, Vector2 position) {
+    lock_guard<recursive_mutex> guard(graph_mutex);
     // allow if already exists; only way to update position
     node_set.insert(id);
     positions[id] = position;
 }
 
 void Dijkstra::remove_node(int id) {
+    lock_guard<recursive_mutex> guard(graph_mutex);
+
     if(node_set.count(id) == 0) {
         WARN_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
         return;
@@ -56,6 +60,8 @@ void Dijkstra::remove_node(int id) {
 
 PoolIntArray Dijkstra::get_nodes() {
     auto result = PoolIntArray();
+    lock_guard<recursive_mutex> guard(graph_mutex);
+
     for(int node : node_set)
         result.append(node);
 
@@ -63,6 +69,7 @@ PoolIntArray Dijkstra::get_nodes() {
 }
 
 Vector2 Dijkstra::get_position(int id) {
+    lock_guard<recursive_mutex> guard(graph_mutex);
     if(node_set.count(id) == 0) {
         ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
         return Vector2();
@@ -77,6 +84,7 @@ void Dijkstra::add_edge(int from, int to, int weight) {
         weight = 1;
     }
 
+    lock_guard<recursive_mutex> guard(graph_mutex);
     if(node_set.count(from) == 0) {
         ERR_PRINT(String("{from} not in set of nodes").format(Dictionary::make("from", from)));
         return;
@@ -93,6 +101,8 @@ void Dijkstra::add_edge(int from, int to, int weight) {
 }
 
 void Dijkstra::remove_edge(int from, int to) {
+    lock_guard<recursive_mutex> guard(graph_mutex);
+
     if(node_set.count(from) == 0) {
         ERR_PRINT(String("{from} not in set of nodes").format(Dictionary::make("from", from)));
         return;
@@ -111,6 +121,8 @@ void Dijkstra::remove_edge(int from, int to) {
 PoolIntArray Dijkstra::get_neighbours(int id) {
     auto result = PoolIntArray();
 
+    lock_guard<recursive_mutex> guard(graph_mutex);
+
     if(node_set.count(id) == 0) {
         ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
         return result;
@@ -123,6 +135,8 @@ PoolIntArray Dijkstra::get_neighbours(int id) {
 }
 
 int Dijkstra::get_weight(int from, int to) {
+    lock_guard<recursive_mutex> guard(graph_mutex);
+
     if(node_set.count(from) == 0) {
         ERR_PRINT(String("{from} not in set of nodes").format(Dictionary::make("from", from)));
         return 1;
@@ -137,43 +151,58 @@ int Dijkstra::get_weight(int from, int to) {
 }
 
 void Dijkstra::solve(int source) {
-    if(node_set.count(source) == 0) {
-        ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
-        return;
+    {
+        lock_guard<recursive_mutex> guard(graph_mutex);
+        if(node_set.count(source) == 0) {
+            ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
+            return;
+        }
     }
 
-    solve_result = dijkstra::solve(source, *this);
+    auto result = dijkstra::solve(source, *this);
+    lock_guard<recursive_mutex> guard(solve_mutex);
+    solve_result = result;
 }
 
 void Dijkstra::solve_async(int source) {
-    if(node_set.count(source) == 0) {
-        ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
-        return;
+    {
+        lock_guard<recursive_mutex> guard(graph_mutex);
+        if(node_set.count(source) == 0) {
+            ERR_PRINT(String("{source} not in set of nodes").format(Dictionary::make("source", source)));
+            return;
+        }
     }
 
     set_result_from_future();
-    if(!solving.load()) { // don't start another if one is already running
+
+    lock_guard<recursive_mutex> guard(solve_mutex);
+    if(!solving) { // don't start another if one is already running
         solving = true;
         solve_future = async(launch::async, dijkstra::solve, source, ref(*this));
     }
 }
 
 void Dijkstra::set_result_from_future() {
+    unique_lock<recursive_mutex> guard(solve_mutex);
+
     if(!solve_future.valid())
         return;
 
-    if(!have_first_result || !solving.load()) {
+    if(!solving) {
         // Previously used `solve_future.wait_for` but it's implementation is too slow
-        solve_result = solve_future.get();
-        have_first_result = true;
+        solve_result = solve_future.get(); // be careful of deadlocks, never call this while both holding solve_mutex and when solving == true
         solve_future = future<dijkstra::DijkstraResult>();  // invalidate it
     }
 }
 
 int Dijkstra::get_next_node_towards_source(int id) {
-    if(node_set.count(id) == 0) {
-        ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
-        return -1;
+    {
+        lock_guard<recursive_mutex> guard(graph_mutex);
+
+        if(node_set.count(id) == 0) {
+            ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+            return -1;
+        }
     }
 
     set_result_from_future();
@@ -181,13 +210,19 @@ int Dijkstra::get_next_node_towards_source(int id) {
 }
 
 Vector2 Dijkstra::get_next_node_position_towards_source(int id) {
-    return positions[get_next_node_towards_source(id)];
+    auto node = get_next_node_towards_source(id);
+    lock_guard<recursive_mutex> guard(graph_mutex);
+    return positions[node];
 }
 
 int Dijkstra::get_distance_to_source(int id) {
-    if(node_set.count(id) == 0) {
-        ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
-        return -1;
+    {
+        lock_guard<recursive_mutex> guard(graph_mutex);
+
+        if(node_set.count(id) == 0) {
+            ERR_PRINT(String("{id} not in set of nodes").format(Dictionary::make("id", id)));
+            return -1;
+        }
     }
 
     set_result_from_future();
@@ -196,6 +231,7 @@ int Dijkstra::get_distance_to_source(int id) {
 
 Vector2 Dijkstra::get_flow(int id) {
     set_result_from_future();
+
     if(solve_result.flow_field.count(id) == 0) {
         ERR_PRINT(String("no flow calculated for node {id}").format(Dictionary::make("id", id)));
         return Vector2();
@@ -205,10 +241,17 @@ Vector2 Dijkstra::get_flow(int id) {
 }
 
 dijkstra::DijkstraResult dijkstra::solve(int source, Dijkstra& graph) {
-    // TODO this is unsafe! Put a mutex around nodes, edges and positions
-    auto node_set = unordered_set<int>(graph.node_set);
-    auto edges = unordered_map<int, unordered_map<int, int>>(graph.edges);
-    auto positions = unordered_map<int, Vector2>(graph.positions);
+    unordered_set<int> node_set;
+    unordered_map<int, unordered_map<int, int>> edges;
+    unordered_map<int, Vector2> positions;
+
+    {
+        lock_guard<recursive_mutex> guard(graph.graph_mutex);
+        node_set = unordered_set<int>(graph.node_set);
+        edges = unordered_map<int, unordered_map<int, int>>(graph.edges);
+        positions = unordered_map<int, Vector2>(graph.positions);
+    }
+
     auto result = DijkstraResult();
 
     result.previous[source] = source;
@@ -250,7 +293,10 @@ dijkstra::DijkstraResult dijkstra::solve(int source, Dijkstra& graph) {
         result.flow_field[node] = calculate_flow(node, edges[node], positions, result.distances);
     }
 
-    graph.solving = false;
+    {
+        lock_guard<recursive_mutex> guard(graph.solve_mutex);
+        graph.solving = false;
+    }
     return result;
 }
 
