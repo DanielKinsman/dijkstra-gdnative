@@ -147,7 +147,7 @@ int Dijkstra::get_weight(int from, int to) {
     return edges[from][to];
 }
 
-void Dijkstra::solve_async(int source) {
+void Dijkstra::solve_async(int source, Dictionary additional_node_costs) {
     {
         lock_guard<mutex> guard(graph_mutex);
         if(node_set.count(source) == 0) {
@@ -162,6 +162,12 @@ void Dijkstra::solve_async(int source) {
     {
         lock_guard<mutex> guard(solve_mutex);
         this->source = source;
+
+        this->additional_node_costs.clear();
+        auto keys = additional_node_costs.keys();
+        for(int i = 0; i < keys.size(); i++) {
+            this->additional_node_costs[int(keys[i])] = int(additional_node_costs[keys[i]]);
+        }
     }
     solving.notify_all();
 }
@@ -230,6 +236,7 @@ dijkstra::DijkstraResult dijkstra::solve(Dijkstra& graph) {
         unique_lock<mutex> locker(graph.solve_mutex);
         graph.solving.wait(locker, [&graph]{return graph.source >= 0;});
         int source = graph.source;
+        auto additional_node_costs = unordered_map<int, int>(graph.additional_node_costs);
         locker.unlock();
 
         {
@@ -259,10 +266,13 @@ dijkstra::DijkstraResult dijkstra::solve(Dijkstra& graph) {
 
             for(auto node_weight_pair : edges[current]) {
                 int neighbour = node_weight_pair.first;
-                int weight = node_weight_pair.second;
-
                 if(working_node_set.count(neighbour) == 0)
                     continue;
+
+                int weight = node_weight_pair.second;
+                int extra_weight = additional_node_costs.count(current) > 0 ? additional_node_costs[current] : 0;
+                extra_weight = max(extra_weight, additional_node_costs.count(neighbour) > 0 ? additional_node_costs[neighbour] : 0);
+                weight += extra_weight;
 
                 int distance_to_neighbour = result.distances[current] + weight;
                 if(distance_to_neighbour < result.distances[neighbour]) {

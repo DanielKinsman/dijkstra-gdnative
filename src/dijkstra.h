@@ -59,7 +59,7 @@ public:
     void remove_edge(int from, int to);
     PoolIntArray get_neighbours(int id);
     int get_weight(int from, int to);
-    void solve_async(int source);
+    void solve_async(int source, Dictionary additional_node_costs);
     int get_next_node_towards_source(int id);
     Vector2 get_next_node_position_towards_source(int id);
     int get_distance_to_source(int id);
@@ -79,6 +79,7 @@ private:
     mutex graph_mutex;
     thread solve_thread;
     int source = -1;
+    unordered_map<int, int> additional_node_costs;
 };
 
 }
