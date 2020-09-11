@@ -2,4 +2,4 @@
 *.so
 *.os
 *.o
-standalone/dijkstra_test
+*.dll
