@@ -100,6 +100,12 @@ elif env['platform'] == "windows":
         else:
             env.Append(CCFLAGS=['-O3'])
         env['SHLIBSUFFIX'] = ".dll"
+        env.Append(LINKFLAGS=[
+            '--static',
+            '-Wl,--no-undefined',
+            '-static-libgcc',
+            '-static-libstdc++',
+        ])
     else:
         # This makes sure to keep the session environment variables on windows,
         # that way you can run scons in a vs 2017 prompt and it will find all the required tools
